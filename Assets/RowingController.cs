@@ -15,7 +15,7 @@ public class RowingController : MonoBehaviour
     public Rigidbody boatRigidbody;
 
     public float rowingForce = 10f;
-    public float steeringForce = 40f;
+    public float steeringForce = 1000f; // vitesse de rotation
     public float bothOarsForce = 10f;
 
     public Transform playerRig;
@@ -31,6 +31,8 @@ public class RowingController : MonoBehaviour
 
     private bool leftOarGrabbed;
     private bool rightOarGrabbed;
+
+    public Transform fishingRod;
 
 
     public DynamicMoveProvider moveProvider;
@@ -77,8 +79,8 @@ public class RowingController : MonoBehaviour
         {
             Vector3 avgVelocity = (leftVel + rightVel) / 2f;
 
-            float forwardBackInput = -avgVelocity.z; // positif = mouvement vers l'arrière
-            float downwardInput = -avgVelocity.y;    // positif = mouvement vers le bas
+            float forwardBackInput = -avgVelocity.z; // mouvement vers l'arrière
+            float downwardInput = -avgVelocity.y;    // vers le bas
 
             bool isRowingMotion = forwardBackInput > 0.2f && downwardInput > 0.1f;
 
@@ -133,10 +135,15 @@ public class RowingController : MonoBehaviour
                 playerRig.position + deltaPosition,
                 deltaRotation * playerRig.rotation
             );
+            if (fishingRod != null)
+            {
+                fishingRod.position += deltaPosition;
+                fishingRod.rotation = deltaRotation * fishingRod.rotation;
+            }
         }
         else
         {
-            // No boat movement — give control back to DynamicMoveProvider
+            // No boat movement so give control back to DynamicMoveProvider
             moveProvider.enabled = true;
         }
 

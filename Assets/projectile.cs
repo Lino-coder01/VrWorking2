@@ -1,21 +1,17 @@
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 public class FishingLineArc : MonoBehaviour
 {
     [Header("Références")]
-    public Transform rodTip; // glisse Cylinder.007 ici
-
-    [Header("Ligne de pêche")]
-    public int arcPoints = 30;
-    public float lineLength = 4f;
-    public float gravity = 2f;
-    public Color lineColor = Color.white;
-    public float lineWidth = 0.015f;
+    public Transform rodTip;
+    public XRRayInteractor teleportInteractor;
+    public Transform originalRayOrigin;
 
     private XRGrabInteractable grabInteractable;
-    private LineRenderer fishingLine;
+    private Transform fakeOrigin;
     private bool isGrabbed = false;
 
     void Start()
@@ -24,44 +20,28 @@ public class FishingLineArc : MonoBehaviour
         grabInteractable.selectEntered.AddListener(OnGrab);
         grabInteractable.selectExited.AddListener(OnRelease);
 
-        fishingLine = gameObject.AddComponent<LineRenderer>();
-        fishingLine.positionCount = arcPoints;
-        fishingLine.startWidth = lineWidth;
-        fishingLine.endWidth = lineWidth * 0.5f;
-        fishingLine.material = new Material(Shader.Find("Sprites/Default"));
-        fishingLine.startColor = lineColor;
-        fishingLine.endColor = lineColor;
-        fishingLine.useWorldSpace = true;
-        fishingLine.enabled = false;
+        fakeOrigin = new GameObject("FishingRayOrigin").transform;
+        fakeOrigin.SetParent(rodTip);
+        fakeOrigin.localPosition = Vector3.zero;
+        //fakeOrigin.localRotation = Quaternion.identity;
+        fakeOrigin.localRotation = Quaternion.Euler(0, 180f, 0);
     }
 
     void OnGrab(SelectEnterEventArgs args)
     {
         isGrabbed = true;
-        fishingLine.enabled = true;
+        teleportInteractor.rayOriginTransform = fakeOrigin;
+        teleportInteractor.gameObject.SetActive(true);
+
+        // Active tous les composants visuels
+        foreach (var component in teleportInteractor.GetComponents<MonoBehaviour>())
+            component.enabled = true;
     }
 
     void OnRelease(SelectExitEventArgs args)
     {
         isGrabbed = false;
-        fishingLine.enabled = false;
-    }
-
-    void Update()
-    {
-        if (!isGrabbed || rodTip == null) return;
-
-        for (int i = 0; i < arcPoints; i++)
-        {
-            float t = i / (float)(arcPoints - 1);
-
-            Vector3 point = rodTip.position
-                + rodTip.forward * (t * lineLength);
-
-            // Gravité simulée — tombe vers le bas
-            point.y -= gravity * t * t;
-
-            fishingLine.SetPosition(i, point);
-        }
+        teleportInteractor.rayOriginTransform = originalRayOrigin;
+        teleportInteractor.gameObject.SetActive(false);
     }
 }
