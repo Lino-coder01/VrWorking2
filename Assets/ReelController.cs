@@ -2,86 +2,83 @@
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using TMPro;
+using InputDevice = UnityEngine.XR.InputDevice;
+using CommonUsages = UnityEngine.XR.CommonUsages;
 
-public class HandleReel : MonoBehaviour
+public class ReelController : MonoBehaviour
 {
-    public Transform cylindre;
-    public Rigidbody sphereRb;
-    public Transform handle;
+    [Header("Références")]
+    public XRSimpleInteractable reelInteractable;
+    public Transform balle;
+    public Transform Cylinder;
+    public FollowDistance followDistance;
+    public XRGrabInteractable canneAPeche;
 
-    public XRSimpleInteractable handleInteractable;
+    [Header("Limites")]
+    public float minRopeLength = 0.5f;
+    public float maxRopeLength = 5f;
+    public float reelSensitivity = 0.5f;
 
-    public float ropeLength = 4f;
-    public float reelSpeed = 2f;
-    public float followStrength = 80f;
+    [Header("Debug UI")]
+    public TMP_Text debugText;
 
-    private float fixedX;
-    private float fixedZ;
+    private InputDevice rightDevice;
+    private bool reelGrabbed = false;
 
-    private bool isHeld = false;
+    private Rigidbody balleRb;
 
-    private float lastAngle;
-
-    private InputDevice leftDevice;
+    void Start()
+    {
+        rightDevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+        balleRb = balle.GetComponent<Rigidbody>();
+    }
 
     void OnEnable()
     {
-        handleInteractable.selectEntered.AddListener(OnGrab);
-        handleInteractable.selectExited.AddListener(OnRelease);
+        reelInteractable.selectEntered.AddListener(e => reelGrabbed = true);
+        reelInteractable.selectExited.AddListener(e => reelGrabbed = false);
     }
 
     void OnDisable()
     {
-        handleInteractable.selectEntered.RemoveListener(OnGrab);
-        handleInteractable.selectExited.RemoveListener(OnRelease);
-    }
-
-    void Start()
-    {
-        fixedX = sphereRb.position.x;
-        fixedZ = sphereRb.position.z;
-
-        leftDevice = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
-
-        lastAngle = handle.localEulerAngles.y;
-    }
-
-    void Update()
-    {
-        if (!isHeld) return;
-
-        float currentAngle = handle.localEulerAngles.y;
-        float delta = Mathf.DeltaAngle(lastAngle, currentAngle);
-        lastAngle = currentAngle;
-
-        ropeLength -= delta * 0.02f * reelSpeed;
-        ropeLength = Mathf.Clamp(ropeLength, 0.5f, 10f);
+        reelInteractable.selectEntered.RemoveAllListeners();
+        reelInteractable.selectExited.RemoveAllListeners();
     }
 
     void FixedUpdate()
     {
-        if (cylindre == null || sphereRb == null) return;
+        Vector2 joystick = Vector2.zero;
+        rightDevice.TryGetFeatureValue(CommonUsages.primary2DAxis, out joystick);
 
-        float targetY = cylindre.position.y - ropeLength;
+        bool canneHeld = canneAPeche != null && canneAPeche.isSelected;
+        bool joystickActif = reelGrabbed && canneHeld && Mathf.Abs(joystick.y) >= 0.2f;
 
-        Vector3 targetPos = new Vector3(fixedX, targetY, fixedZ);
+        if (followDistance != null)
+            followDistance.reelActive = joystickActif;
 
-        Vector3 force = (targetPos - sphereRb.position) * followStrength;
+        if (debugText != null)
+        {
+            Vector3 relPos = Cylinder != null
+                ? balle.position - Cylinder.position
+                : balle.position;
 
-        sphereRb.AddForce(force, ForceMode.Acceleration);
+            debugText.text =
+                "rel X      : " + relPos.x.ToString("F3") + "\n" +
+                "rel Y      : " + relPos.y.ToString("F3") + "\n" +
+                "rel Z      : " + relPos.z.ToString("F3") + "\n" +
+                "Joystick Y : " + joystick.y.ToString("F3") + "\n" +
+                "Grabbed    : " + reelGrabbed + "\n" +
+                "Canne held : " + canneHeld;
+        }
 
-        sphereRb.position = new Vector3(fixedX, sphereRb.position.y, fixedZ);
-        sphereRb.velocity = new Vector3(0f, sphereRb.velocity.y, 0f);
-    }
+        if (!joystickActif) return;
 
-    void OnGrab(SelectEnterEventArgs args)
-    {
-        isHeld = true;
-        lastAngle = handle.localEulerAngles.y;
-    }
+        // Clamp basé sur la position Y du cylindre
+        float cylindreY = Cylinder != null ? Cylinder.position.y : 0f;
+        float newY = balle.position.y + joystick.y * reelSensitivity * Time.fixedDeltaTime;
+        newY = Mathf.Clamp(newY, cylindreY - maxRopeLength, cylindreY - minRopeLength);
 
-    void OnRelease(SelectExitEventArgs args)
-    {
-        isHeld = false;
+        balleRb.MovePosition(new Vector3(balle.position.x, newY, balle.position.z));
     }
 }

@@ -17,7 +17,7 @@ public class RopeControllerSimple : MonoBehaviour
     public List<Vector3> allRopeSections = new List<Vector3>();
 
     //Rope data
-    private float ropeLength = 4f; // augmente pour descendre plus bas
+    public float ropeLength = 4f; // augmente pour descendre plus bas
     private float minRopeLength = 1f;
     private float maxRopeLength = 4f;
 

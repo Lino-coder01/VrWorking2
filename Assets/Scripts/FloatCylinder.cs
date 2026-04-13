@@ -1,17 +1,11 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class FloatAdvanced : MonoBehaviour
 {
     [Header("Flottaison")]
-    public float waterLevel = 0f; // hauteur Y de ta mesh eau
+    public float waterLevel = 0f;
     public float floatHeight = 0.5f;
-    public float liftStrength = 10f;
-    public float damping = 2f;
-
-    [Header("Floaters")]
-    public List<Transform> floaterPoints = new List<Transform>();
-    public float floatingPower = 20f;
 
     [Header("Drag")]
     public float underWaterDrag = 3f;
@@ -19,36 +13,35 @@ public class FloatAdvanced : MonoBehaviour
     public float defaultDrag = 0f;
     public float defaultAngularDrag = 0.05f;
 
+    [HideInInspector] public bool overrideY = false;
+
     private Rigidbody rb;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+        rb.freezeRotation = true;
+        // Freeze XZ rotation + Y position au niveau physique
+        rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
     }
 
     void FixedUpdate()
     {
         float targetY = waterLevel + floatHeight;
-        float depth = targetY - transform.position.y;
-        float force = depth * liftStrength - rb.velocity.y * damping;
-        rb.AddForce(Vector3.up * force, ForceMode.Acceleration);
 
-        bool isUnderWater = false;
-
-        foreach (var point in floaterPoints)
+        if (!overrideY)
         {
-            float diff = point.position.y - waterLevel;
-            if (diff < 0)
-            {
-                rb.AddForceAtPosition(
-                    Vector3.up * floatingPower * Mathf.Abs(diff),
-                    point.position,
-                    ForceMode.Force
-                );
-                isUnderWater = true;
-            }
+            // Forcer Y exactement, annuler toute vélocité verticale
+            Vector3 pos = rb.position;
+            pos.y = targetY;
+            rb.MovePosition(pos);
         }
 
+        // Toujours annuler vélocité Y et angulaire
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.angularVelocity = Vector3.zero; // ✅ stop mouvement circulaire
+
+        bool isUnderWater = rb.position.y < waterLevel;
         rb.drag = isUnderWater ? underWaterDrag : defaultDrag;
         rb.angularDrag = isUnderWater ? underWaterAngularDrag : defaultAngularDrag;
     }
