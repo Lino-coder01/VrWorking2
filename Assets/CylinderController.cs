@@ -28,6 +28,8 @@ public class CylinderController : MonoBehaviour
     private Rigidbody cylinderRb;
     private float currentDepth = 2f;
 
+    private Vector3 lastCannePos;
+
     void Start()
     {
         rightDevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
@@ -37,6 +39,7 @@ public class CylinderController : MonoBehaviour
             transform.position.y - balle.position.y,
             minDepth, maxDepth
         );
+        lastCannePos = canneAPeche.transform.position;
     }
 
     void OnEnable()
@@ -59,8 +62,9 @@ public class CylinderController : MonoBehaviour
         bool canneHeld = canneAPeche != null && canneAPeche.isSelected;
         bool handleMode = reelGrabbed && canneHeld;
         bool joystickActif = joystick.magnitude >= 0.2f;
-        bool movingWhileHoldingCanne = canneHeld && !handleMode && !joystickActif;
+        bool movingWhileHoldingCanne = canneHeld && !handleMode && joystickActif;
 
+        //Baisser/monter la sphere
         if (handleMode)
         {
             if (floatAdvanced != null) floatAdvanced.overrideY = true;
@@ -81,17 +85,31 @@ public class CylinderController : MonoBehaviour
             // Bouge XZ en suivant le joystick
             cylinderRb.constraints = RigidbodyConstraints.FreezeRotation
                                    | RigidbodyConstraints.FreezePositionY;
-            Vector3 move = new Vector3(joystick.x, 0f, joystick.y) * moveSpeed * Time.fixedDeltaTime;
+           
+
+            // APRÈS
+            Camera cam = Camera.main;
+            Vector3 camForward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
+            Vector3 camRight = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up).normalized;
+            Vector3 move = (camForward * joystick.y + camRight * joystick.x) * moveSpeed * Time.fixedDeltaTime;
             Vector3 newPos = cylinderRb.position + move;
             newPos.y = cylinderFixedY;
             cylinderRb.MovePosition(newPos);
         }
         else if (canneHeld && !joystickActif)
         {
-            // Canne tenue, pas de joystick → freeze total
             if (floatAdvanced != null) floatAdvanced.overrideY = false;
-            cylinderRb.constraints = RigidbodyConstraints.FreezePosition
-                                   | RigidbodyConstraints.FreezeRotation;
+            cylinderRb.constraints = RigidbodyConstraints.FreezeRotation
+                                   | RigidbodyConstraints.FreezePositionY;
+
+            Vector3 delta = canneAPeche.transform.position - lastCannePos;
+            delta.y = 0f;
+            Vector3 newPos = cylinderRb.position + delta;
+            newPos.y = cylinderFixedY;
+            cylinderRb.MovePosition(newPos);
+
+            cylinderRb.velocity = Vector3.zero;
+            cylinderRb.angularVelocity = Vector3.zero;
         }
         else
         {
@@ -102,7 +120,12 @@ public class CylinderController : MonoBehaviour
             {
                 cylinderRb.constraints = RigidbodyConstraints.FreezeRotation
                                        | RigidbodyConstraints.FreezePositionY;
-                Vector3 move = new Vector3(joystick.x, 0f, joystick.y) * moveSpeed * Time.fixedDeltaTime;
+                
+                // APRÈS
+                Camera cam = Camera.main;
+                Vector3 camForward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
+                Vector3 camRight = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up).normalized;
+                Vector3 move = (camForward * joystick.y + camRight * joystick.x) * moveSpeed * Time.fixedDeltaTime;
                 Vector3 newPos = cylinderRb.position + move;
                 newPos.y = cylinderFixedY;
                 cylinderRb.MovePosition(newPos);
@@ -125,5 +148,6 @@ public class CylinderController : MonoBehaviour
             targetBalleY,
             cylinderRb.position.z
         ));
+        lastCannePos = canneAPeche.transform.position;
     }
 }

@@ -25,28 +25,21 @@ public class SphereCollector : MonoBehaviour
     void AttachObject(GameObject obj)
     {
         Rigidbody rb = obj.GetComponent<Rigidbody>();
+
         if (rb != null)
         {
             rb.isKinematic = true;
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            rb.useGravity = false;
         }
 
-        foreach (Collider col in obj.GetComponentsInChildren<Collider>())
-            col.enabled = false;
-
-        // ✅ Garder la position world space au moment de l'attachement
-        Vector3 worldPos = obj.transform.position;
-        Quaternion worldRot = obj.transform.rotation;
-
+        // Parent direct → va suivre parfaitement la sphère
         obj.transform.SetParent(transform);
-
-        // ✅ Remettre la position world space pour que l'objet reste visible
-        obj.transform.position = worldPos;
-        obj.transform.rotation = worldRot;
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
 
         attachedObjects.Add(obj);
-        Debug.Log("Attaché : " + obj.name + " à pos " + worldPos);
+
+        Debug.Log("Objet attaché : " + obj.name);
     }
 
     void RetrieveAll()
