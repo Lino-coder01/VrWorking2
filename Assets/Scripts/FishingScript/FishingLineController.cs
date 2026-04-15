@@ -2,15 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-//If we have a stiff rope, such as a metal wire, then we need a simplified solution
-//this is also an accurate solution because a metal wire is not swinging as much as a rope made of a lighter material
+//This script draws a rope between the edge of the fishing rod and the cylinder,
+//IT uses a Bezier curve to make the rope look slightly curved instead of perfectly straight
+
+//CODE TAKEN FROM
 public class RopeControllerSimple : MonoBehaviour
 {
-    //Objects that will interact with the rope
     public Transform whatTheRopeIsConnectedTo;
     public Transform whatIsHangingFromTheRope;
 
-    //Line renderer used to display the rope
     private LineRenderer lineRenderer;
 
     //A list with all rope sections
@@ -26,20 +26,16 @@ public class RopeControllerSimple : MonoBehaviour
     //How fast we can add more/less rope
     float winchSpeed = 2f;
 
-    //The joint we use to approximate the rope
+    //The joint we use to approximate the rope tension and length changes
     SpringJoint springJoint;
 
+    //The script finds the springjoint on anchor obj, gets line renderer, sets handing object mass to a loadMass
     void Start()
     {
         springJoint = whatTheRopeIsConnectedTo.GetComponent<SpringJoint>();
 
-        //Init the line renderer we use to display the rope
         lineRenderer = GetComponent<LineRenderer>();
 
-        //Init the spring we use to approximate the rope from point a to b
-        //UpdateSpring();
-
-        //Add the weight to what the rope is carrying
         whatIsHangingFromTheRope.GetComponent<Rigidbody>().mass = loadMass;
     }
 
@@ -62,7 +58,7 @@ public class RopeControllerSimple : MonoBehaviour
         springJoint.maxDistance = ropeLength;
     }
 
-    //Display the rope with a line renderer
+    //calculates four Bezier control points
     private void DisplayRope()
     {
         //This is not the actual width, but the width use so we can see the rope
@@ -74,8 +70,8 @@ public class RopeControllerSimple : MonoBehaviour
 
         //Update the list with rope sections by approximating the rope with a bezier curve
         //A Bezier curve needs 4 control points
-        Vector3 A = whatTheRopeIsConnectedTo.position;
-        Vector3 D = whatIsHangingFromTheRope.position;
+        Vector3 A = whatTheRopeIsConnectedTo.position; //topAnchor pos
+        Vector3 D = whatIsHangingFromTheRope.position; //handing obj pos
 
         //Upper control point
         //To get a little curve at the top than at the bottom
@@ -96,13 +92,6 @@ public class RopeControllerSimple : MonoBehaviour
         {
             positions[i] = allRopeSections[i];
         }
-
-        //Just add a line between the start and end position for testing purposes
-        //Vector3[] positions = new Vector3[2];
-
-        //positions[0] = whatTheRopeIsConnectedTo.position;
-        //positions[1] = whatIsHangingFromTheRope.position;
-
 
         //Add the positions to the line renderer
         lineRenderer.positionCount = positions.Length;

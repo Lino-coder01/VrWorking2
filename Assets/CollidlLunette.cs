@@ -4,11 +4,11 @@ using System.Collections.Generic;
 public class SphereCollector : MonoBehaviour
 {
     [Header("Tag des objets récupérables")]
-    public string collectableTag = "Collectable";
+    public string collectableTag = "Collectable"; //tag for grabbable objects
 
     [Header("Récupération")]
-    public Transform cylindre;
-    public float retrieveDistance = 0.5f; // distance cylindre-sphere pour déposer
+    public Transform cylindre; //Surface of fishing tip
+    public float retrieveDistance = 0.5f; // distance cylindresphere to put
 
     private List<GameObject> attachedObjects = new List<GameObject>();
 
@@ -21,7 +21,7 @@ public class SphereCollector : MonoBehaviour
 
         AttachObject(other.gameObject);
     }
-
+ 
     void AttachObject(GameObject obj)
     {
         Rigidbody rb = obj.GetComponent<Rigidbody>();
@@ -32,7 +32,7 @@ public class SphereCollector : MonoBehaviour
             rb.useGravity = false;
         }
 
-        // Parent direct → va suivre parfaitement la sphère
+        // Parent direct va suivre parfaitement la sphère
         obj.transform.SetParent(transform);
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
@@ -46,11 +46,13 @@ public class SphereCollector : MonoBehaviour
     {
         foreach (GameObject obj in attachedObjects)
         {
+
             if (obj == null) continue;
 
+            //Détache les objets connecté à la sphère
             obj.transform.SetParent(null);
 
-            // ✅ Spawner AU-DESSUS du cylindre avec un Y garanti sur l'eau
+            // Spawner  au dessus du cylindre avec un Y garanti sur l'eau
             Vector3 dropPos = new Vector3(
                 cylindre.position.x + Random.Range(-0.2f, 0.2f),
                 cylindre.position.y + 0.3f, // ← au-dessus du cylindre, pas waterLevel fixe
@@ -72,9 +74,9 @@ public class SphereCollector : MonoBehaviour
         attachedObjects.Clear();
     }
 
+    // For each frame we check if the sphere is enough close of the cylinder and that it transports objects
     void Update()
     {
-        // Quand la sphère remonte près du cylindre → déposer les objets
         if (cylindre == null) return;
 
         float dist = Vector3.Distance(transform.position, cylindre.position);

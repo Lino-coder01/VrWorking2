@@ -4,32 +4,48 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using InputDevice = UnityEngine.XR.InputDevice;
 using CommonUsages = UnityEngine.XR.CommonUsages;
 
+//Controls a fishing rod mechanic : a cylinder (reel) on the surface moves in XZ,
+// and a ball (hook) moves vertically below it.
 public class CylinderController : MonoBehaviour
 {
     [Header("Références")]
     public XRSimpleInteractable reelInteractable;
     public XRGrabInteractable canneAPeche;
     public Transform balle;
-    public FloatAdvanced floatAdvanced; // ✅ AJOUTE ÇA
+
+    // controls whether the ball floats or sink
+    public FloatAdvanced floatAdvanced; 
 
     [Header("Mouvement cylindre XZ")]
+    // How ast the cylinder moves
     public float moveSpeed = 2f;
-    public float cylinderFixedY = 0.5f;
+    //The Y the cylinder is always locked to
+    public float cylinderFixedY = 0.5f; 
 
     [Header("Mouvement balle Y")]
-    public float reelSensitivity = 1f;
+    // How fast the joystick raises/lowers the ball
+    public float reelSensitivity = 1f; 
+    
+    //Min/max distance the ball can be below the cylinder
     public float minDepth = 0.5f;
     public float maxDepth = 5f;
+    
+    //floor 
     public float groundY = -4f;
 
     private InputDevice rightDevice;
     private bool reelGrabbed = false;
     private Rigidbody balleRb;
     private Rigidbody cylinderRb;
-    private float currentDepth = 2f;
+    // current distance btw cylinder and ball
+    private float currentDepth = 2f; 
 
-    private Vector3 lastCannePos;
-
+    // Previous frame position of the rod, used to calculate movement delta
+    private Vector3 lastCannePos; 
+    /* 
+     * We get the right hand XR device for joystick input, the rigidbody reference
+     * Calculates initial depth based on actual distance between cylinder and ball
+     */
     void Start()
     {
         rightDevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
@@ -42,6 +58,7 @@ public class CylinderController : MonoBehaviour
         lastCannePos = canneAPeche.transform.position;
     }
 
+    //Subscribes/unsubscribes to the reel grab events to track reelGrabbed state
     void OnEnable()
     {
         reelInteractable.selectEntered.AddListener(e => reelGrabbed = true);
@@ -59,12 +76,17 @@ public class CylinderController : MonoBehaviour
         Vector2 joystick = Vector2.zero;
         rightDevice.TryGetFeatureValue(CommonUsages.primary2DAxis, out joystick);
 
-        bool canneHeld = canneAPeche != null && canneAPeche.isSelected;
+        //player holding the rod
+        bool canneHeld = canneAPeche != null && canneAPeche.isSelected; 
+        //holding rod and reel 
         bool handleMode = reelGrabbed && canneHeld;
+        //joystick used
         bool joystickActif = joystick.magnitude >= 0.2f;
+        //canne held, no handle and joystick active
         bool movingWhileHoldingCanne = canneHeld && !handleMode && joystickActif;
 
-        //Baisser/monter la sphere
+        //Higher/Lower the sphere
+        //Cylinder freezed, ball only moves vertically
         if (handleMode)
         {
             if (floatAdvanced != null) floatAdvanced.overrideY = true;
@@ -78,16 +100,16 @@ public class CylinderController : MonoBehaviour
             cylinderRb.constraints = RigidbodyConstraints.FreezePosition
                                    | RigidbodyConstraints.FreezeRotation;
         }
+        //Movement relative to the camera direction
+        //balls floats normally,
         else if (movingWhileHoldingCanne)
         {
             if (floatAdvanced != null) floatAdvanced.overrideY = false;
 
-            // Bouge XZ en suivant le joystick
+            // Move XZ depending on joystick, only right and left 
             cylinderRb.constraints = RigidbodyConstraints.FreezeRotation
                                    | RigidbodyConstraints.FreezePositionY;
            
-
-            // APRÈS
             Camera cam = Camera.main;
             Vector3 camForward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
             Vector3 camRight = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up).normalized;
@@ -96,6 +118,7 @@ public class CylinderController : MonoBehaviour
             newPos.y = cylinderFixedY;
             cylinderRb.MovePosition(newPos);
         }
+        //Cylinder follows the rod in XZ
         else if (canneHeld && !joystickActif)
         {
             if (floatAdvanced != null) floatAdvanced.overrideY = false;
@@ -113,15 +136,15 @@ public class CylinderController : MonoBehaviour
         }
         else
         {
-            // Rien en main
+            //Nothing in hand
             if (floatAdvanced != null) floatAdvanced.overrideY = false;
 
+            //moves cylinder freely in XZ 
             if (joystickActif)
             {
                 cylinderRb.constraints = RigidbodyConstraints.FreezeRotation
                                        | RigidbodyConstraints.FreezePositionY;
                 
-                // APRÈS
                 Camera cam = Camera.main;
                 Vector3 camForward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
                 Vector3 camRight = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up).normalized;
@@ -130,18 +153,18 @@ public class CylinderController : MonoBehaviour
                 newPos.y = cylinderFixedY;
                 cylinderRb.MovePosition(newPos);
             }
+            //If joystick idle full freeze and zero velocity to stop any drift
             else
             {
                 cylinderRb.constraints = RigidbodyConstraints.FreezePosition
                                        | RigidbodyConstraints.FreezeRotation;
 
-                // ✅ Annuler toute vélocité résiduelle
                 cylinderRb.velocity = Vector3.zero;
                 cylinderRb.angularVelocity = Vector3.zero;
             }
         }
 
-        // Balle toujours sous le cylindre
+        // Ball always under cylinder
         float targetBalleY = Mathf.Max(cylinderRb.position.y - currentDepth, groundY);
         balleRb.MovePosition(new Vector3(
             cylinderRb.position.x,

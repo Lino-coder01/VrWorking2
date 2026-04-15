@@ -5,29 +5,29 @@ public class FloatAdvanced : MonoBehaviour
 {
     [Header("Flottaison")]
     public float waterLevel = 0f;
-    public float floatHeight = 0.5f;
+    public float floatHeight = 0.5f; //height above water
 
     [Header("Drag")]
-    public float underWaterDrag = 3f;
+    public float underWaterDrag = 3f; //Resistance under water
     public float underWaterAngularDrag = 1f;
-    public float defaultDrag = 0f;
+    public float defaultDrag = 0f; //resistance outside of water
     public float defaultAngularDrag = 0.05f;
 
     [HideInInspector] public bool overrideY = false;
 
     private Rigidbody rb;
 
+    //We select the Rigidbody and freeze akk rotations and Y physic
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
-        // Freeze XZ rotation + Y position au niveau physique
         rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
     }
 
     void FixedUpdate()
     {
-        float targetY = waterLevel + floatHeight;
+        float targetY = waterLevel + floatHeight; //Y destination where the object should float
 
         if (!overrideY)
         {

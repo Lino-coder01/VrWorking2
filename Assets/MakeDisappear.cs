@@ -4,11 +4,17 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 public class HideWhenNotHeld : MonoBehaviour
 {
-    public XRGrabInteractable canapeche; // drag ta canapeche ici
+    public XRGrabInteractable canapeche;
 
-    private Renderer[] renderers;
-    private Collider[] colliders;
+    private Renderer[] renderers; //All visual components on this object and children
+    private Collider[] colliders; //All colliders on this object and children
 
+
+    /*
+     * Collects all Renderers and Colliders in the object hierarchy
+     * Hides the object immediately at startup
+     * Subscribes to the rod's grab/release events
+     */
     void Start()
     {
         renderers = GetComponentsInChildren<Renderer>();
@@ -32,6 +38,7 @@ public class HideWhenNotHeld : MonoBehaviour
         SetVisible(false);
     }
 
+    //Loops through every Renderer and Collider and enables/disables them
     private void SetVisible(bool visible)
     {
         foreach (var r in renderers)
